@@ -1,0 +1,43 @@
+--- a/support/apxs.in
++++ b/support/apxs.in
+@@ -25,8 +25,11 @@ package apxs;
+ 
+ my %config_vars = ();
+ 
+-my $installbuilddir = "@exp_installbuilddir@";
++my @install_paths = ("prefix","exec_prefix","bindir","sbindir","datadir","localstatedir","sysconfdir","libdir","includedir","APR_CONFIG","APU_CONFIG","APR_BINDIR","APU_BINDIR");
++my $stagingdir = "@stagingdir@";
++my $installbuilddir = $stagingdir."@exp_installbuilddir@";
+ get_config_vars("$installbuilddir/config_vars.mk",\%config_vars);
++remap_paths($stagingdir);
+ 
+ # read the configuration variables once
+ 
+@@ -204,7 +207,9 @@ unless (-x "$httpd") {
+     exit 1;
+ }
+ 
+-unless (grep /mod_so/, `. $envvars && $httpd -l`) {
++# The test will fail when staging, make sure your Apache has DSO support compiled in
++#unless (grep /mod_so/, `. $envvars && $httpd -l`) {
++unless (1 == 1) {
+     error("Sorry, no shared object support for Apache");
+     error("available under your platform. Make sure");
+     error("the Apache module mod_so is compiled into");
+@@ -257,6 +262,16 @@ sub get_vars {
+     return $result;
+ }
+ 
++sub remap_paths {
++    my ($new_prefix) = @_;
++    my $r_path;
++    foreach $r_path (@install_paths) {
++        if (exists $config_vars{$r_path}) {
++            $config_vars{$r_path}=$new_prefix.$config_vars{$r_path};
++        }
++    }
++}
++
+ ##
+ ##  Operation
+ ##
