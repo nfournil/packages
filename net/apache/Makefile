@@ -15,9 +15,11 @@ PKG_MAINTAINER:=Thomas Heil <heil@terminal-consulting.de>
 PKG_LICENSE:=Apache License
 
 PKG_SOURCE:=$(PKG_SOURCE_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=http://mirrors.ibiblio.org/apache/httpd/ \
+PKG_SOURCE_URL:= \
+		https://archive.apache.org/dist/httpd/ \
+		http://mirrors.ibiblio.org/apache/httpd/ \
 		http://apache.imsam.info/httpd/
-PKG_MD5SUM:=6c10e15835ab214464228a9beb7afba8
+#PKG_HASH:=71fcc128238a690515bd8174d5330a5309161ef314a326ae45c7c15ed139c13a
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_SOURCE_NAME)-$(PKG_VERSION)
 
@@ -41,7 +43,7 @@ endef
 
 define Package/apache
 $(call Package/apache/Default)
-  DEPENDS:=+libapr +libaprutil +libpcre +libopenssl +unixodbc
+  DEPENDS:=+libapr +libaprutil +libpcre +libopenssl +unixodbc +zlib
 endef
 
 define Package/apache/description
@@ -91,23 +93,36 @@ endef
 
 TARGET_CFLAGS += $(FPIC)
 TARGET_CPPFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
+TARGET_LDFLAGS += -lpthread 
 
 define Build/Configure
 	$(call Build/Configure/Default, \
 		--with-apr="$(STAGING_DIR)/usr/bin/apr-1-config" \
 		--with-apr-util="$(STAGING_DIR)/usr/bin/apu-1-config" \
 		--with-pcre="$(STAGING_DIR)/usr/bin/pcre-config" \
+		--with-z="$(STAGING_DIR)/usr/lib" \
+		--with-program-name=apache2 \
+		--with-port=8080 \
+		--with-staging-dir="$(STAGING_DIR)" \
+		--enable-mods-shared='auth-digest dav dav-fs dav-lock deflate info rewrite' \
 		--enable-http \
+		--with-crypto \
+		--with-sqlit3="$(STAGING_DIR)/usr" \
+		--with-openssl="$(STAGING_DIR)/usr" \
 		--enable-ssl \
 		--enable-proxy \
 		--disable-disk-cache \
 		--enable-maintainer-mode \
+		--with-mpm=prefork \
+		--with-mpm=worker \
 		--enable-mime-magic \
 		--without-suexec-bin \
 		--sysconfdir=/etc/apache \
+	        --includedir=/usr/include/apache \
 		ap_cv_void_ptr_lt_long=no \
 		logfiledir="/var/log" \
 		runtimedir="/var/run" \
+		EXTRA_LIBS="-ldl -lpthread -lcrypto -lrt -lssl" \
 	)
 endef
 
@@ -119,10 +134,10 @@ define Build/InstallDev
 	$(CP)   $(PKG_INSTALL_DIR)/etc/* \
 		$(1)/etc
 	$(INSTALL_DIR) $(1)/usr/include/apache
-	$(CP)	$(PKG_INSTALL_DIR)/usr/include/* \
+	$(CP)	$(PKG_INSTALL_DIR)/usr/include/apache/* \
 		$(1)/usr/include/apache
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP)   $(PKG_INSTALL_DIR)/usr/lib/httpd.exp \
+	$(CP)   $(PKG_INSTALL_DIR)/usr/lib/* \
 		$(1)/usr/lib
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(CP)   $(PKG_INSTALL_DIR)/usr/sbin/* \
@@ -133,7 +148,7 @@ define Build/InstallDev
 endef
 
 define Package/apache/preinst
-	rm /usr/sbin/httpd
+#	rm /usr/sbin/httpd
 	echo -e "You should take a look in the initscripts, busybox's httpd \n\
 	uses some parameters which are maybe unsupported by apache."
 endef
@@ -141,13 +156,15 @@ endef
 define Package/apache/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	# we don't need apxs on the router, it's just for building apache modules.
-	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/{ab,apachectl,checkgid,dbmmanage,envvars,envvars-std,htcacheclean,htdbm,htdigest,htpasswd,httpd,httxt2dbm,logresolve,rotatelogs} $(1)/usr/sbin/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/{ab,apachectl,checkgid,dbmmanage,envvars,envvars-std,htcacheclean,htdbm,htdigest,htpasswd,apache2,httxt2dbm,logresolve,rotatelogs} $(1)/usr/sbin/
+	#$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/{ab,apachectl,checkgid,dbmmanage,envvars,envvars-std,htcacheclean,htdbm,htdigest,htpasswd,httpd,httxt2dbm,logresolve,rotatelogs} $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/httpd.exp $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/* $(1)/usr/lib/
 	$(INSTALL_DIR) $(1)/usr/share
 	$(CP) $(PKG_INSTALL_DIR)/usr/share/{error,htdocs,cgi-bin,build} $(1)/usr/share/
 	$(INSTALL_DIR) $(1)/etc/apache
-	$(CP) $(PKG_INSTALL_DIR)/etc/apache/{httpd.conf,magic,mime.types,extra} $(1)/etc/apache/
+	$(CP) $(PKG_INSTALL_DIR)/etc/apache/{apache2.conf,magic,mime.types,extra} $(1)/etc/apache/
+	#$(CP) $(PKG_INSTALL_DIR)/etc/apache/{httpd.conf,magic,mime.types,extra} $(1)/etc/apache/
 endef
 
 define Package/apache/postrm

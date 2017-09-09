@@ -27,7 +27,7 @@ include $(INCLUDE_DIR)/nls.mk
 define Package/hidapi
   SECTION:=libs
   CATEGORY:=Libraries
-  DEPENDS:=+libusb-1.0 +libiconv +librt
+  DEPENDS:=+libusb-1.0 +libiconv-full +librt
   TITLE:=Library to talk to HID devices
   URL:=http://www.signal11.us/oss/hidapi/
 endef
@@ -49,6 +49,7 @@ TARGET_CFLAGS+=$(FPIC)
 
 define Build/Compile
 	$(call Build/Compile/Default, libhidapi-libusb.so)
+	rm -rf $(PKG_BUILD_DIR)/libusb/libhidapi-libusb.so.0
 	mv $(PKG_BUILD_DIR)/libusb/libhidapi-libusb.so \
 		$(PKG_BUILD_DIR)/libusb/libhidapi-libusb.so.0
 	ln -s libhidapi-libusb.so.0 $(PKG_BUILD_DIR)/libusb/libhidapi-libusb.so

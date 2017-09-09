@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=apr
-PKG_VERSION:=1.5.2
+PKG_VERSION:=1.6.2
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://mirrors.ibiblio.org/apache/apr/
-PKG_MD5SUM:=4e9769f3349fe11fc0a5e1b224c236aa
+PKG_HASH:=09109cea377bab0028bba19a92b5b0e89603df9eab05c0f7dbd4dd83d48dcebd
 PKG_MAINTAINER:=Thomas Heil <heil@terminal-consulting.de>
 PKG_LICENSE:=Apache License
 
@@ -27,7 +27,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/libapr
   SECTION:=libs
   CATEGORY:=Libraries
-  DEPENDS:=+libpthread +librt +libuuid
+  DEPENDS:=+libpthread +librt +libuuid +libiconv
   TITLE:=Apache Portable Runtime Library
   URL:=http://apr.apache.org/
 endef
@@ -37,15 +37,14 @@ TARGET_CPPFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
 
 CONFIGURE_ARGS += \
 	--with-devrandom=/dev/urandom \
-	--disable-dso \
-	--enable-ipv6
+	$(call autoconf_bool,CONFIG_IPV6,ipv6)
 
 # XXX: ac_cv_sizeof_struct_iovec=1 is just to trick configure
 CONFIGURE_VARS += \
 	ac_cv_sizeof_struct_iovec=1 \
 	ac_cv_struct_rlimit=yes \
 	apr_cv_process_shared_works=no \
-	apr_cv_mutex_robust_shared=no \
+	apr_cv_mutex_robust_shared=yes \
 	apr_cv_tcp_nodelay_with_cork=yes \
 	apr_cv_use_lfs64=yes \
 	LDFLAGS="$$$$LDFLAGS -lpthread" \
